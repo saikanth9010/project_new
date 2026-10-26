@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f7f8" />
+    <meta name="description" content="Northstar Security field operations workspace." />
+    <title>Northstar · Operations Center</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <section class="auth-screen" id="authScreen" aria-labelledby="loginTitle">
+      <button class="theme-toggle auth-theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to dark theme" title="Switch to dark theme" data-action="toggle-theme">
+        <span class="theme-icon theme-icon-light" aria-hidden="true">☼</span><span class="theme-track"><span class="theme-thumb"></span></span><span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span>
+      </button>
+      <div class="auth-card">
+        <a class="brand auth-brand" href="/" aria-label="Northstar home">
+          <span class="brand-mark">N</span>
+          <span class="brand-copy"><strong>NORTHSTAR</strong><small>SECURITY OPERATIONS</small></span>
+        </a>
+        <div class="auth-eyebrow">SECURE WORKSPACE</div>
+        <h1 id="loginTitle">Sign in to operations</h1>
+        <p class="auth-subtitle">Use your firm account to open the secure operations workspace.</p>
+        <form id="loginForm" autocomplete="on">
+          <div class="form-field"><label for="loginEmail">WORK EMAIL</label><input id="loginEmail" name="email" type="email" autocomplete="username" required maxlength="254" /></div>
+          <div class="form-field"><label for="loginPassword">PASSWORD</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required maxlength="256" /></div>
+          <p class="login-message" id="loginMessage" role="alert" hidden></p>
+          <button class="primary-btn auth-submit" type="submit">Sign in securely <span>→</span></button>
+        </form>
+        <a class="secondary-btn auth-sso" id="casdoorLoginButton" href="/api/auth/casdoor/login" hidden>Continue with Casdoor <span>↗</span></a>
+        <div class="auth-note"><span class="service-dot"></span><span>Secure server records · Demo information is fictional</span></div>
+      </div>
+    </section>
+    <div class="app-shell" id="appShell" hidden>
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#dashboard" aria-label="Northstar home">
+          <span class="brand-mark">N</span>
+          <span class="brand-copy"><strong>NORTHSTAR</strong><small>SECURITY OPERATIONS</small></span>
+        </a>
+
+        <div class="tenant-switcher">
+          <span class="tenant-icon">NS</span>
+          <span class="tenant-copy"><small>WORKSPACE</small><strong>Northstar Security</strong></span>
+        </div>
+
+        <div class="nav-label">OPERATIONS</div>
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="dashboard"><span class="nav-icon">◫</span><span>Command center</span></button>
+          <button class="nav-item" data-view="incidents"><span class="nav-icon">◉</span><span>Incidents</span><span class="nav-count" id="incidentNavCount">0</span></button>
+          <button class="nav-item" data-view="patrols"><span class="nav-icon">◎</span><span>Patrols & tours</span></button>
+          <button class="nav-item" data-view="officers" data-management-only><span class="nav-icon">♙</span><span>Officers</span></button>
+          <button class="nav-item" data-view="sites"><span class="nav-icon">⌖</span><span>Sites & posts</span></button>
+        </nav>
+
+        <div class="nav-label nav-label-spaced">INSIGHTS</div>
+        <nav class="nav-list">
+          <button class="nav-item" data-view="reports" data-management-only><span class="nav-icon">▤</span><span>Reports</span></button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="service-status"><span class="service-dot"></span><span><strong>DEMO WORKSPACE</strong><small>No live service connected</small></span></div>
+          <button class="help-link" data-action="show-info"><span>?</span> Help & system info</button>
+          <button class="help-link" data-action="show-demo" data-demo-only hidden><span>◌</span> Manage demo data</button>
+        </div>
+      </aside>
+
+      <div class="main-shell">
+        <header class="topbar">
+          <div class="mobile-brand"><span class="brand-mark">N</span><strong>NORTHSTAR</strong></div>
+          <div class="breadcrumbs">
+            <button class="crumb-button" type="button" data-action="toggle-quick-nav" aria-expanded="false">Operations</button>
+            <span class="crumb-separator">/</span>
+            <button class="crumb-button current-crumb" id="breadcrumbTitle" type="button" data-action="toggle-quick-nav" aria-expanded="false">Command center</button>
+            <div class="quick-nav-menu" id="quickNavMenu" hidden>
+              <strong>Go to</strong>
+              <button type="button" data-view="dashboard">Command center</button>
+              <button type="button" data-view="incidents">Incidents</button>
+              <button type="button" data-view="patrols">Patrols &amp; tours</button>
+              <button type="button" data-view="officers" data-management-only>Officer roster</button>
+              <button type="button" data-view="sites">Sites &amp; posts</button>
+              <button type="button" data-view="reports" data-management-only>Reports</button>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <span class="connection-pill" id="connectionPill">WORKSPACE</span>
+            <div class="font-size-controls" aria-label="Text size">
+              <button type="button" data-font-size="small" aria-label="Small text" title="Small text">A</button>
+              <button type="button" data-font-size="medium" aria-label="Medium text" title="Medium text">A</button>
+              <button type="button" data-font-size="large" aria-label="Large text" title="Large text">A</button>
+            </div>
+            <time class="live-clock" id="liveClock" aria-label="Current time">--:--:--</time>
+            <button class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to dark theme" title="Switch to dark theme" data-action="toggle-theme"><span class="theme-icon theme-icon-light" aria-hidden="true">☼</span><span class="theme-track"><span class="theme-thumb"></span></span><span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span></button>
+            <span class="topbar-divider"></span>
+            <div class="profile-menu-wrap">
+              <button class="profile-button" type="button" data-action="toggle-profile-menu" aria-label="Open account options" aria-expanded="false" aria-controls="profileMenu"><span class="avatar">NS</span><span class="profile-label"><strong>Operator</strong><small>Sign in required</small></span></button>
+              <div class="profile-menu" id="profileMenu" hidden>
+                <button type="button" data-action="open-profile">My profile</button>
+                <button type="button" data-action="open-users" data-admin-only hidden>User management</button>
+                <button type="button" data-action="open-query" data-admin-only hidden>Record query</button>
+                <button type="button" data-action="open-db-settings" data-admin-only hidden>Connection settings</button>
+                <button type="button" data-action="load-demo" data-demo-only hidden>Add demo data</button>
+                <button type="button" data-action="confirm-remove-demo" data-demo-only hidden>Remove demo data</button>
+                <button class="profile-menu-logout" type="button" data-action="logout">Sign out…</button>
+              </div>
+            </div>
+            <button class="mobile-menu-button" type="button" aria-label="Open navigation" data-action="toggle-nav">☰</button>
+          </div>
+        </header>
+
+        <main id="pageContent" class="page-content" aria-live="polite"></main>
+        <footer class="global-footer">
+          <span>Northstar Field Operations <span class="footer-dot">·</span> <strong>SECURE WORKSPACE</strong></span>
+          <span>Incidents and audit events are saved on the server <span class="footer-dot">·</span> No live device tracking or alerts</span>
+        </footer>
+      </div>
+    </div>
+
+    <div class="modal-layer" id="modalLayer" hidden>
+      <div class="modal-backdrop" data-action="close-modal"></div>
+      <section class="modal-card" id="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></section>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

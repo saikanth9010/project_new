@@ -1,0 +1,19 @@
+{
+  "name": "northstar-security-webgui",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "dev": "node --env-file-if-exists=.env server.mjs",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "db:seed-demo": "node --env-file-if-exists=.env scripts/seed-demo.mjs",
+    "admin:bootstrap": "node --env-file-if-exists=.env scripts/bootstrap-admin.mjs"
+  },
+  "dependencies": {
+    "pg": "8.23.1"
+  }
+}
