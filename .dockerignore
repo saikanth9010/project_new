@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+node_modules
+npm-debug.log*
+deploy/docker/secrets/
+deploy/jenkins/host-config/
+deploy/proxmox/*.tar.gz
+deploy/proxmox/*.zip
+deploy/proxmox/northstar-webgui.tar.gz

@@ -1,0 +1,51 @@
+services:
+  database:
+    image: postgres:18-alpine
+    container_name: northstar-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: northstar
+      POSTGRES_USER: northstar_owner
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_superuser_password
+      PGDATA: /var/lib/postgresql/18/docker
+    ports:
+      - "${DB_BIND_IP:?Set DB_BIND_IP to the database VM private address}:5432:5432"
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_min_protocol_version=TLSv1.2
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - ssl_cert_file=/run/secrets/server.crt
+      - -c
+      - ssl_key_file=/run/secrets/server.key
+    secrets:
+      - postgres_superuser_password
+    volumes:
+      - northstar-database:/var/lib/postgresql
+      - ./secrets/server.crt:/run/secrets/server.crt:ro
+      - ./secrets/server.key:/run/secrets/server.key:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+      - /var/run/postgresql:rw,noexec,nosuid,size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  northstar-database:
+
+secrets:
+  postgres_superuser_password:
+    file: ./secrets/postgres_superuser_password

@@ -3,3 +3,5 @@ node_modules/
 .env.*
 !.env.example
 npm-debug.log*
+deploy/jenkins/host-config/*.env
+deploy/jenkins/host-config/secrets/

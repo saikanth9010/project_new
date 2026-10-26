@@ -78,6 +78,8 @@ The named Docker volume keeps local database data when the container stops. To r
 
 Do not use the local Compose database or fictional demo seed for production. Use a supported managed PostgreSQL service or a privately networked PostgreSQL server, a trusted HTTPS reverse proxy, and a secrets manager.
 
+For a Jenkins and GitHub deployment to separate frontend, backend, and database Docker hosts, see [the Jenkins deployment guide](deploy/jenkins/README.md). It covers the Docker build agent, GHCR credentials, private host networking, database bootstrap, automatic main-branch deployments, and the first administrator setup.
+
 ### 1. Create database roles
 
 Create the database and schema with a migration owner. Create a separate non-superuser LOGIN role named northstar_app for the running website. Do not give northstar_app SUPERUSER, BYPASSRLS, or table ownership.

@@ -1,0 +1,56 @@
+services:
+  api:
+    image: ${API_IMAGE:?Set API_IMAGE in backend.deploy.env}
+    container_name: northstar-api
+    restart: unless-stopped
+    env_file:
+      - ./backend.runtime.env
+    ports:
+      - "${BACKEND_BIND_IP:?Set BACKEND_BIND_IP to the backend VM private address}:4173:4173"
+    volumes:
+      - ./secrets/database-ca.pem:/run/secrets/database-ca.pem:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4173/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+
+  migrate:
+    image: ${API_IMAGE:?Set API_IMAGE in backend.deploy.env}
+    profiles: ["ops"]
+    env_file:
+      - ./backend.migration.env
+    volumes:
+      - ./secrets/database-ca.pem:/run/secrets/database-ca.pem:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command: ["npm", "run", "db:migrate"]
+
+  bootstrap:
+    image: ${API_IMAGE:?Set API_IMAGE in backend.deploy.env}
+    profiles: ["bootstrap"]
+    env_file:
+      - ./backend.bootstrap.env
+    volumes:
+      - ./secrets/database-ca.pem:/run/secrets/database-ca.pem:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command: ["npm", "run", "admin:bootstrap"]

@@ -1,0 +1,22 @@
+FROM node:24-bookworm-slim
+
+ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
+    PORT=4173
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+COPY --chown=node:node server.mjs app.js index.html styles.css ./
+COPY --chown=node:node lib ./lib
+COPY --chown=node:node scripts ./scripts
+COPY --chown=node:node db ./db
+
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.title="Northstar Security API" \
+      org.opencontainers.image.revision="$VCS_REF"
+
+USER node
+EXPOSE 4173
+CMD ["node", "server.mjs"]

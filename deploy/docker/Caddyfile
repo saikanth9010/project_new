@@ -1,0 +1,15 @@
+:8080 {
+	respond /healthz 200
+}
+
+{$PUBLIC_DOMAIN} {
+	encode zstd gzip
+	@api path /api/*
+	handle @api {
+		reverse_proxy {$API_UPSTREAM}
+	}
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
