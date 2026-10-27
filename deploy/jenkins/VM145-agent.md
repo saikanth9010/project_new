@@ -4,7 +4,7 @@ Jenkins node `northstar-docker` is already created for one executor, label `nort
 
 ## Install the agent on VM 145
 
-Use the Proxmox VM console and sign in as `docker`. The account needs sudo privileges to install packages and create a system service. Keep Jenkins reachable only on the trusted LAN; the current controller endpoint is `10.10.10.10:8080`.
+Use the Proxmox VM console and sign in as `docker`. The account needs sudo privileges to install packages and create a system service. Use the configured HTTPS reverse-proxy URL, `https://jenkins.saikanth.com/`; the controller's private origin is `10.10.10.10:8080` and should not be exposed directly to the internet.
 
 Install Java and tools from Ubuntu's signed repositories, then confirm the existing Docker daemon is available to this account:
 
@@ -24,7 +24,7 @@ Create the agent directory and download the matching agent client from the Jenki
 ```sh
 sudo install -d -o docker -g docker -m 0750 /home/docker/jenkins-agent
 sudo curl --fail --silent --show-error --location \
-  http://10.10.10.10:8080/jnlpJars/agent.jar \
+  https://jenkins.saikanth.com/jnlpJars/agent.jar \
   --output /home/docker/jenkins-agent/agent.jar
 sudo chown docker:docker /home/docker/jenkins-agent/agent.jar
 sudo chmod 0644 /home/docker/jenkins-agent/agent.jar
@@ -59,7 +59,7 @@ User=docker
 SupplementaryGroups=docker
 WorkingDirectory=/home/docker/jenkins-agent
 EnvironmentFile=/etc/northstar-jenkins-agent
-ExecStart=/usr/bin/java -jar /home/docker/jenkins-agent/agent.jar -url http://10.10.10.10:8080/ -secret ${JENKINS_AGENT_SECRET} -name northstar-docker -webSocket -workDir /home/docker/jenkins-agent
+ExecStart=/usr/bin/java -jar /home/docker/jenkins-agent/agent.jar -url https://jenkins.saikanth.com/ -secret ${JENKINS_AGENT_SECRET} -name northstar-docker -webSocket -workDir /home/docker/jenkins-agent
 Restart=always
 RestartSec=10
 NoNewPrivileges=true
@@ -84,4 +84,11 @@ Jenkins should show the node online. Check service logs locally with `sudo journ
 
 The agent account can use the Docker socket. Docker access is effectively root access to VM 145, so run only trusted builds on it. The Jenkins multibranch job must discover only the protected `main` branch and must not build forks or pull requests. Keep Jenkins administrators and GitHub write access tightly controlled. Do not expose Jenkins port 8080 to the public internet.
 
-The Jenkins controller currently serves this private-LAN endpoint over HTTP. Keep that traffic on a trusted, isolated network; if the controller is later moved behind a valid HTTPS reverse proxy, update the service URL and download the agent jar through that trusted HTTPS endpoint.
+The agent uses the configured HTTPS reverse proxy and validates its certificate using Ubuntu's system trust store. The proxy must preserve the `Host` header, set `X-Forwarded-Proto: https`, and pass WebSocket upgrade requests. Jenkins currently shows a reverse-proxy warning when configured through the LAN origin; check the proxy's forwarded headers and confirm the URL below responds from VM 145 before starting the agent:
+
+```sh
+curl --fail --show-error --head https://jenkins.saikanth.com/login
+curl --fail --show-error --head https://jenkins.saikanth.com/jnlpJars/agent.jar
+```
+
+If certificate validation or routing fails, fix the existing proxy configuration before starting the service. Do not disable TLS verification or switch the agent to plain HTTP.

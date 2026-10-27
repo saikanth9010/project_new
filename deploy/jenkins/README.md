@@ -16,7 +16,7 @@ The following guests have been provisioned on the Proxmox host using `TBNASHARDD
 | `northstar-backend` | 147 | `10.10.10.16` | API container |
 | `northstar-frontend` | 148 | `10.10.10.17` | Caddy and frontend container |
 | Existing Docker VM | 145 | `10.10.10.11` | Jenkins Docker build agent |
-| Existing Jenkins LXC | 126 | `10.10.10.10:8080` | Jenkins controller |
+| Existing Jenkins LXC | 126 | `10.10.10.10:8080` | Jenkins controller origin; browser/agent URL is `https://jenkins.saikanth.com/` |
 
 The database container is running and healthy. Backend and frontend runtime configuration is staged, but their application containers will not deploy until the Jenkins agent connects and the GitHub, GHCR, and target-deploy credentials below are configured. Use DHCP reservations for `.11`, `.15`, `.16`, and `.17` before relying on these addresses. `project.saikanth.com` currently resolves through Cloudflare but serves a “No site at this address” page; configure its Cloudflare origin and router NAT to the frontend before expecting public access.
 
@@ -109,7 +109,7 @@ Environment examples are templates only. Copy them to the indicated private host
 ## 4. Connect the approved VM 145 Jenkins agent
 
 1. Jenkins already has a permanent inbound agent named `northstar-docker`, one executor, remote directory `/home/docker/jenkins-agent`, and the same label. Its usage is set to **Only build jobs with label expressions matching this node**. Keep it offline until you enter its one-time secret on VM 145.
-2. Open VM 145's Proxmox console and sign in as `docker`. The agent connects outward to `http://10.10.10.10:8080/` over WebSocket, so no VM SSH key, Jenkins TCP 50000 listener, or public inbound port is needed. Give the account Docker access only if it is already approved to run trusted builds; Docker socket access is root-equivalent.
+2. Open VM 145's Proxmox console and sign in as `docker`. The agent connects outward to `https://jenkins.saikanth.com/` over WebSocket, so no VM SSH key, Jenkins TCP 50000 listener, or public inbound agent port is needed. The HTTPS reverse proxy must support WebSockets and forward Jenkins' host/protocol headers; keep the controller origin at `10.10.10.10:8080` private. Give the account Docker access only if it is already approved to run trusted builds; Docker socket access is root-equivalent.
 3. Install `openjdk-21-jre-headless`, `git`, `curl`, and `ca-certificates` from Ubuntu's configured signed APT repositories. The Jenkinsfile runs validation in the official Node.js 24 container, so Node.js does not need to be installed on the VM agent. Do not install a Jenkins controller on this VM.
 4. Follow [`VM145-agent.md`](VM145-agent.md) to create `/home/docker/jenkins-agent`, download `agent.jar` from the controller, and install the system service. Enter the one-time secret from the `northstar-docker` node page directly into the root-only file on VM 145. Never paste it into this repository, chat, shell history, or logs.
 5. Enable the service and verify the node becomes online in Jenkins and remains online after a VM restart.
@@ -129,7 +129,7 @@ The SSH deploy account can control Docker, which is root-equivalent on that targ
 2. Create **New Item → Multibranch Pipeline** in Jenkins. Add a GitHub Branch Source for `https://github.com/saikanth9010/project_new`. Add a narrowly scoped GitHub token credential if the repository is private.
 3. Configure branch discovery to include only `main`; do not discover change requests, forks, or other branches. A Jenkinsfile from an untrusted branch could execute arbitrary code on the Docker agent. Keep repository write access restricted and protect `main` with review and branch rules.
 4. Discover the root `Jenkinsfile` (script path `Jenkinsfile`) and ensure the job's agent expression is `northstar-docker`. Builds on `main` validate source, build and push immutable GHCR images, apply DB migrations, then deploy the API and frontend.
-5. If GitHub can reach Jenkins through a trusted HTTPS reverse proxy, configure a `push` webhook with a random secret. Never expose Jenkins port 8080 directly to the internet. If Jenkins stays private, configure periodic multibranch scans instead of opening an inbound port. Do not add PR webhook events when PR/change-request builds are disabled.
+5. If GitHub can reach `https://jenkins.saikanth.com/` through the existing trusted HTTPS reverse proxy, configure a `push` webhook with a random secret. Never expose Jenkins origin port 8080 directly to the internet. If the proxy cannot safely accept GitHub webhooks, configure periodic multibranch scans instead of opening another inbound port. Do not add PR webhook events when PR/change-request builds are disabled.
 6. Run **Scan Multibranch Pipeline Now**, then verify a reviewed change to `main` produces the expected stages. The job will remain pending or fail until the inbound agent and the three Jenkins credentials above are ready.
 
 ## 6. First release and initial admin
