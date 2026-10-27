@@ -84,7 +84,7 @@ Jenkins should show the node online. Check service logs locally with `sudo journ
 
 The agent account can use the Docker socket. Docker access is effectively root access to VM 145, so run only trusted builds on it. The Jenkins multibranch job must discover only the protected `main` branch and must not build forks or pull requests. Keep Jenkins administrators and GitHub write access tightly controlled. Do not expose Jenkins port 8080 to the public internet.
 
-The agent uses the configured HTTPS reverse proxy and validates its certificate using Ubuntu's system trust store. The proxy must preserve the `Host` header, set `X-Forwarded-Proto: https`, and pass WebSocket upgrade requests. Jenkins currently shows a reverse-proxy warning when configured through the LAN origin; check the proxy's forwarded headers and confirm the URL below responds from VM 145 before starting the agent:
+The agent uses the configured HTTPS reverse proxy and validates its certificate using Ubuntu's system trust store. The proxy must preserve the `Host` header, set `X-Forwarded-Proto: https`, and pass WebSocket upgrade requests. Jenkins can show its reverse-proxy warning when an administrator opens the controller through the LAN origin even though the canonical URL is the public hostname. Check the page through `https://jenkins.saikanth.com/`; if Jenkins still warns there, verify response rewriting and the forwarded headers. Confirm these URLs respond from VM 145 before starting the agent:
 
 ```sh
 curl --fail --show-error --head https://jenkins.saikanth.com/login
@@ -92,3 +92,5 @@ curl --fail --show-error --head https://jenkins.saikanth.com/jnlpJars/agent.jar
 ```
 
 If certificate validation or routing fails, fix the existing proxy configuration before starting the service. Do not disable TLS verification or switch the agent to plain HTTP.
+
+See Jenkins' [reverse-proxy troubleshooting guide](https://www.jenkins.io/doc/book/system-administration/reverse-proxy-configuration-troubleshooting/) for the expected URL, headers, and response rewriting.
