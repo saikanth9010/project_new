@@ -18,7 +18,7 @@ The following guests have been provisioned on the Proxmox host using `TBNASHARDD
 | Existing Docker VM | 145 | `10.10.10.11` | Jenkins Docker build agent |
 | Existing Jenkins LXC | 126 | `10.10.10.10:8080` | Jenkins controller |
 
-The database container is running and healthy. Backend and frontend runtime configuration is staged, but their application containers will not deploy until the Jenkins agent connects and the GitHub, GHCR, and target-deploy credentials below are configured. Use DHCP reservations for `.11`, `.15`, `.16`, and `.17` before relying on these addresses. The public name `project.saikanth.com` did not resolve during setup; configure DNS and router NAT to the frontend before expecting public access.
+The database container is running and healthy. Backend and frontend runtime configuration is staged, but their application containers will not deploy until the Jenkins agent connects and the GitHub, GHCR, and target-deploy credentials below are configured. Use DHCP reservations for `.11`, `.15`, `.16`, and `.17` before relying on these addresses. `project.saikanth.com` currently resolves through Cloudflare but serves a “No site at this address” page; configure its Cloudflare origin and router NAT to the frontend before expecting public access.
 
 For separate machines, use:
 
