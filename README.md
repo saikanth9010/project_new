@@ -180,6 +180,7 @@ Use the theme switch in the sign-in page or the command-center header to change 
 - .env.example: local configuration template; copy it to .env and replace all sample passwords.
 - deploy/proxmox/install-security-firm.sh: interactive Proxmox LXC host installer.
 - deploy/proxmox/README.md: Proxmox deployment and Casdoor setup guide.
-#   p r o j e c t _ n e w  
- #   p r o j e c t _ n e w  
- 
+- deploy/proxmox/provision-northstar-vms.sh: storage-prompting Ubuntu VM provisioner for the separated Jenkins deployment.
+- deploy/jenkins/README.md: Jenkins, GitHub, GHCR, and multi-VM deployment instructions.
+- deploy/jenkins/VM145-agent.md: inbound Jenkins agent installation steps for VM 145.
+- deploy/jenkins/northstar-docker-agent.service: systemd unit template for the inbound agent on the existing Docker VM.

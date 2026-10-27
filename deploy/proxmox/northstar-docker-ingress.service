@@ -1,0 +1,13 @@
+[Unit]
+Description=Restrict Northstar Docker-published ingress
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/northstar-docker-ingress.env
+ExecStart=/usr/local/sbin/northstar-docker-ingress.sh ${NORTHSTAR_ALLOWED_SOURCE} ${NORTHSTAR_PUBLISHED_PORT}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

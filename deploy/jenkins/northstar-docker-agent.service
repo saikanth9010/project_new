@@ -1,0 +1,24 @@
+[Unit]
+Description=Northstar Jenkins inbound Docker agent
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=docker
+SupplementaryGroups=docker
+WorkingDirectory=/home/docker/jenkins-agent
+EnvironmentFile=/etc/northstar-jenkins-agent
+ExecStart=/usr/bin/java -jar /home/docker/jenkins-agent/agent.jar -url http://10.10.10.10:8080/ -secret ${JENKINS_AGENT_SECRET} -name northstar-docker -webSocket -workDir /home/docker/jenkins-agent
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectProc=invisible
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

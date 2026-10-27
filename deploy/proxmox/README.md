@@ -1,5 +1,23 @@
 # Proxmox deployment
 
+## Separate-VM Jenkins deployment
+
+The Jenkins deployment layout uses the existing Jenkins controller at `10.10.10.10:8080`, Docker agent VM 145 at `10.10.10.11`, and these application guests on storage `TBNASHARDDISK`:
+
+| VM | Role | Address |
+| ---: | --- | --- |
+| 146 | Database | `10.10.10.15` |
+| 147 | Backend API | `10.10.10.16` |
+| 148 | Frontend / Caddy | `10.10.10.17` |
+
+The three application VMs were created from the official Ubuntu 24.04 cloud image after checking its published SHA-256 checksum. Ubuntu updates, Docker Engine, Docker Compose, UFW, QEMU Guest Agent, and the `northstar-ops` administration account were configured. Jenkins is configured with the dedicated inbound node `northstar-docker`; VM 145 must still run the agent service before Jenkins reports it online. The database container is healthy; the application images wait for a successful trusted Jenkins release and credentials.
+
+Use DHCP reservations for all four VM addresses. Public DNS for `project.saikanth.com` was not resolving during deployment; create its DNS record and configure router NAT / upstream firewall to forward TCP 80 and 443 to `10.10.10.17`. Keep Jenkins port 8080 private to the trusted LAN or an authenticated HTTPS proxy. Do not expose PostgreSQL port 5432 or the backend port 4173 publicly.
+
+For a new installation, run `provision-northstar-vms.sh` on the Proxmox host as root. It lists storage that accepts VM disks and asks which one to use, shows the planned VM sizes, and requires typing `CREATE` before creating any guests. It downloads the Ubuntu image only from `cloud-images.ubuntu.com` and verifies the published checksum. The script uses the next available VM IDs and stops if any selected ID is already occupied. Review the script and make a host backup before running it; it does not replace the existing single-LXC installer below.
+
+Follow [the Jenkins deployment guide](../jenkins/README.md) and [VM 145's inbound-agent instructions](../jenkins/VM145-agent.md) to finish the agent and configure Jenkins/GitHub credentials. The Jenkins node screen contains a one-time secret; enter it directly on VM 145 and do not add it to this repository or send it in chat.
+
 This bundle installs the web GUI in one **unprivileged Debian 13 LXC**. The LXC runs the Node.js application, PostgreSQL with verified loopback TLS, and Caddy as the HTTPS reverse proxy. Proxmox starts the LXC at host boot; systemd restarts the app, database, and proxy. The container does not run Docker.
 
 The installer asks you to select an active Proxmox storage that supports `rootdir`; that selected storage holds the LXC disk. It also asks for disk, CPU, memory, network, DNS name, and an initial administrator password. It uses an active `vztmpl` storage for the Debian template cache.

@@ -6,6 +6,20 @@ This setup builds the browser application and Node API as separate OCI images, p
 
 Use one Jenkins controller in the existing Jenkins LXC. Do not install a Jenkins controller in every app VM: one controller can coordinate several deployment targets, while extra controllers add maintenance and credential copies. Keep builds off the controller and run them on a Docker-capable Jenkins agent. The existing Docker VM can be that agent. It can also be one of the deployment targets if you choose to consolidate machines.
 
+### Northstar Proxmox deployment currently provisioned
+
+The following guests have been provisioned on the Proxmox host using `TBNASHARDDISK`:
+
+| Guest | VM ID | Address | Purpose |
+| --- | ---: | --- | --- |
+| `northstar-database` | 146 | `10.10.10.15` | PostgreSQL with TLS and persistent volume |
+| `northstar-backend` | 147 | `10.10.10.16` | API container |
+| `northstar-frontend` | 148 | `10.10.10.17` | Caddy and frontend container |
+| Existing Docker VM | 145 | `10.10.10.11` | Jenkins Docker build agent |
+| Existing Jenkins LXC | 126 | `10.10.10.10:8080` | Jenkins controller |
+
+The database container is running and healthy. Backend and frontend runtime configuration is staged, but their application containers will not deploy until the Jenkins agent connects and the GitHub, GHCR, and target-deploy credentials below are configured. Use DHCP reservations for `.11`, `.15`, `.16`, and `.17` before relying on these addresses. The public name `project.saikanth.com` did not resolve during setup; configure DNS and router NAT to the frontend before expecting public access.
+
 For separate machines, use:
 
 | Role | What runs there | Network access |
@@ -92,26 +106,31 @@ On the frontend VM:
 
 Environment examples are templates only. Copy them to the indicated private host paths, then replace every example value. Do not commit the completed files.
 
-## 4. Set up a Docker-capable Jenkins agent
+## 4. Connect the approved VM 145 Jenkins agent
 
-1. In Jenkins, install/update Pipeline, Git, GitHub Branch Source, and Credentials Binding plugins.
-2. Keep the controller's built-in node executors at `0`. Create a permanent inbound or SSH agent on the Docker VM, assign the label `northstar-docker`, and install a supported Java runtime, Node.js 24, Git, and Docker Engine/Compose there. Give only the trusted deployment pipeline access to its Docker socket.
-3. Verify the agent can run `node --version`, `npm --version`, `docker version`, and `docker compose version`. Confirm it can reach GitHub, GHCR, and the private target SSH addresses.
-4. On the agent, add the SSH host keys for backend and frontend to the Jenkins agent account's `known_hosts` file, then verify them out of band. The pipeline uses `StrictHostKeyChecking=yes` and deliberately fails if a host key is unknown or changes.
-5. Create separate Jenkins SSH Username with private key credentials with these exact IDs: `northstar-backend-deploy` and `northstar-frontend-deploy`. Use the dedicated deployment account and the verified private host keys.
-6. Create Jenkins Username with password credential ID `northstar-ghcr-writer`. Username is the GitHub account that owns the packages. Use a classic personal access token with `write:packages` (and `read:packages` if prompted); GHCR's command-line authentication uses classic PATs. Limit scopes, rotate it, and do not put it in the Jenkinsfile or an env file. Keep repository checkout credentials separate and read-only.
-7. Edit `Jenkinsfile`'s `BACKEND_HOST` and `FRONTEND_HOST` values to the private deployment IPs or hostnames. `GHCR_OWNER` is currently `saikanth9010`; change it if the repository/packages move to another user or organization. Commit this file and the deployment assets to GitHub.
+1. Jenkins already has a permanent inbound agent named `northstar-docker`, one executor, remote directory `/home/docker/jenkins-agent`, and the same label. Its usage is set to **Only build jobs with label expressions matching this node**. Keep it offline until you enter its one-time secret on VM 145.
+2. Open VM 145's Proxmox console and sign in as `docker`. The agent connects outward to `http://10.10.10.10:8080/` over WebSocket, so no VM SSH key, Jenkins TCP 50000 listener, or public inbound port is needed. Give the account Docker access only if it is already approved to run trusted builds; Docker socket access is root-equivalent.
+3. Install `openjdk-21-jre-headless`, `git`, `curl`, and `ca-certificates` from Ubuntu's configured signed APT repositories. The Jenkinsfile runs validation in the official Node.js 24 container, so Node.js does not need to be installed on the VM agent. Do not install a Jenkins controller on this VM.
+4. Follow [`VM145-agent.md`](VM145-agent.md) to create `/home/docker/jenkins-agent`, download `agent.jar` from the controller, and install the system service. Enter the one-time secret from the `northstar-docker` node page directly into the root-only file on VM 145. Never paste it into this repository, chat, shell history, or logs.
+5. Enable the service and verify the node becomes online in Jenkins and remains online after a VM restart.
+6. Verify from the VM agent account that `java -version`, `git --version`, `docker version`, and `docker compose version` work. Confirm Docker can pull `node:24-bookworm-slim` and the agent can reach GitHub, GHCR, and the private deployment targets.
 
-The SSH deploy account can control Docker, which is root-equivalent on that target. Protect Jenkins administrators, agent access, branch protections, and credentials accordingly. Configure GitHub Branch Source to trust only branches and pull requests from trusted contributors; do not expose deployment credentials to forked or untrusted pull requests.
+For the target machines, create a dedicated deployment account on backend and frontend, give it only the permissions required to update `/opt/northstar` and run the Compose deployment, then create separate Jenkins **SSH Username with private key** credentials with IDs `northstar-backend-deploy` and `northstar-frontend-deploy`. The private keys must be generated and added by the administrator; do not reuse the Proxmox administrator key. Pin verified SSH host keys in the agent account's `known_hosts` file. The pipeline uses `StrictHostKeyChecking=yes` and deliberately fails if a host key is unknown or changes.
+
+Create the Jenkins **Username with password** credential `northstar-ghcr-writer` using the GitHub package owner username and a narrowly scoped token able to publish and read the GHCR packages. Keep repository checkout credentials read-only and separate from this package credential. Never put tokens or private keys in the Jenkinsfile, repository, or runtime environment files.
+
+`Jenkinsfile` currently targets backend `10.10.10.16`, frontend `10.10.10.17`, and package owner `saikanth9010`. Change these only if the deployment addresses or package owner change. Keep the Jenkins built-in node executors at `0`.
+
+The SSH deploy account can control Docker, which is root-equivalent on that target. Protect Jenkins administrators, agent access, branch protections, and credentials accordingly. Configure the GitHub Branch Source to discover `main` only and do not build pull requests, forks, or other branches on the Docker-capable agent.
 
 ## 5. Connect GitHub and Jenkins
 
 1. Confirm the project is pushed to `saikanth9010/project_new` and that the Jenkins controller can reach GitHub.
-2. Create **New Item → Multibranch Pipeline** in Jenkins. Add a GitHub Branch Source for `https://github.com/saikanth9010/project_new`. Add a narrowly scoped GitHub token credential if the repository is private. Set the scan/build strategy so `main` builds and deploys; review PR trust settings carefully.
-3. Configure the job to discover the repository's `Jenkinsfile` at the Git repository root (the current Git repository is the `webGUI` project, so the Jenkins script path is simply `Jenkinsfile`). If you later move these files into a monorepo subdirectory, update the Jenkinsfile paths and job script path together.
-4. Ensure the job runs on an agent with label `northstar-docker`. The pipeline validates every discovered branch, but builds and deploys images only from `main`.
-5. For automatic GitHub push notifications, expose Jenkins only through a trusted HTTPS reverse proxy and add a GitHub webhook for `push` and pull request events with a random webhook secret. Store/configure that secret in Jenkins and use GitHub's delivery test. Never expose Jenkins port 8080 directly to the internet. If Jenkins is intentionally private and GitHub cannot reach it, configure periodic multibranch scans instead of opening an inbound port.
-6. Run **Scan Multibranch Pipeline Now**, then verify a change to `main` produces these stages: validation, image build, GHCR publish, DB migration + backend rollout, frontend rollout.
+2. Create **New Item → Multibranch Pipeline** in Jenkins. Add a GitHub Branch Source for `https://github.com/saikanth9010/project_new`. Add a narrowly scoped GitHub token credential if the repository is private.
+3. Configure branch discovery to include only `main`; do not discover change requests, forks, or other branches. A Jenkinsfile from an untrusted branch could execute arbitrary code on the Docker agent. Keep repository write access restricted and protect `main` with review and branch rules.
+4. Discover the root `Jenkinsfile` (script path `Jenkinsfile`) and ensure the job's agent expression is `northstar-docker`. Builds on `main` validate source, build and push immutable GHCR images, apply DB migrations, then deploy the API and frontend.
+5. If GitHub can reach Jenkins through a trusted HTTPS reverse proxy, configure a `push` webhook with a random secret. Never expose Jenkins port 8080 directly to the internet. If Jenkins stays private, configure periodic multibranch scans instead of opening an inbound port. Do not add PR webhook events when PR/change-request builds are disabled.
+6. Run **Scan Multibranch Pipeline Now**, then verify a reviewed change to `main` produces the expected stages. The job will remain pending or fail until the inbound agent and the three Jenkins credentials above are ready.
 
 ## 6. First release and initial admin
 

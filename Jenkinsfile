@@ -8,10 +8,9 @@ pipeline {
   }
 
   environment {
-    // Update these private deployment addresses before creating the Jenkins job.
     GHCR_OWNER = 'saikanth9010'
-    BACKEND_HOST = 'SET_BACKEND_PRIVATE_IP'
-    FRONTEND_HOST = 'SET_FRONTEND_PRIVATE_IP'
+    BACKEND_HOST = '10.10.10.16'
+    FRONTEND_HOST = '10.10.10.17'
   }
 
   stages {
@@ -23,10 +22,9 @@ pipeline {
       steps {
         sh '''
           set -eu
-          node --version
-          npm ci
-          node --check app.js
-          node --check server.mjs
+          docker run --rm --pull=always --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --volume "$WORKSPACE:/workspace" --workdir /workspace \
+            node:24-bookworm-slim sh -ec 'npm ci && node --check app.js && node --check server.mjs'
         '''
       }
     }

@@ -5,6 +5,7 @@ import { createDbPool } from '../lib/db.mjs';
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const migrationDirectory = join(directory, '..', 'db', 'migrations');
+const runtimeGrantsFile = join(directory, '..', 'db', 'production-runtime-grants.sql');
 const pool = createDbPool(process.env.MIGRATION_DATABASE_URL || process.env.DATABASE_URL);
 
 try {
@@ -30,6 +31,11 @@ try {
       client.release();
     }
   }
+  const runtimeGrants = await readFile(runtimeGrantsFile, 'utf8');
+  for (const statement of runtimeGrants.split(';').map((part) => part.trim()).filter(Boolean)) {
+    await pool.query(statement);
+  }
+  process.stdout.write('Runtime database grants are current.\n');
   process.stdout.write('Database migrations are current.\n');
 } finally {
   await pool.end();
